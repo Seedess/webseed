@@ -9,7 +9,8 @@ var bodyParser = require('body-parser');
 var debug = require('debug')('torrent-webseed:app')
 
 var routes = require('./routes/index');
-var users = require('./routes/user');
+var torrent = require('./routes/torrent');
+var file = require('./routes/file');
 
 var app = express();
 
@@ -19,9 +20,8 @@ app.locals.ENV_DEVELOPMENT = env == 'development';
 
 // cors
 app.use(function(req, res, next) {
-  console.log('Sending cors headers Access-Control-Allow-Origin: *')
   res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Range");
   next();
 });
 
@@ -37,8 +37,10 @@ app.use(bodyParser.urlencoded({
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// precedence is important
 app.use('/', routes);
-app.use('/users', users);
+app.use('/torrent', torrent);
+app.use('/file', file);
 
 /// catch 404 and forward to error handler
 app.use(function(req, res, next) {
