@@ -1,7 +1,24 @@
 #!/usr/bin/env node
 var app = require('../app');
+var opts = require('optimist')
+  .usage('Usage: $0')
+    .options({
+      port: {
+        alias: 'p',
+        demand: false,
+        description: 'Port server listens on', 
+        default: false
+      },
+      quiet: {
+        alias: 'q',
+        demand: false,
+        description: 'Run quietly. N output or logging',
+        default: false
+      }
+    })
+  .argv;
 
-app.set('port', process.env.PORT || 3000);
+app.set('port', process.env.PORT || opts.port || 3000);
 
 var server = app.listen(app.get('port'), function() {
 	console.log('Express server listening on port ' + server.address().port);
