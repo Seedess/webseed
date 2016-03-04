@@ -9,10 +9,20 @@ var store = require('memory-chunk-store')
 var webseed = require('../lib/webseed')
 var prettyBytes = require('pretty-bytes')
 
-var client = new WebTorrent({store: store })
+var client = new WebTorrent()
 
 function showError(err, next) {
 	next(err)
+}
+
+function onCompleteDestorySwarm(torrent) {
+	var timer = setTimeout(function() {
+		if (torrent.progress == 1) {
+			clearTimeout(timer)
+			console.log('Destroying swarm, torrent fully downloaded.')
+			torrent.swarm.destroy()
+		}
+	}, 1000)
 }
 
 /* List torrent files /file/:infoHash */
@@ -35,6 +45,8 @@ router.get('/:infoHash', function(req, res, next) {
 	console.log('Retrieving torrent metadata from bittorrent')
 	client.add(infoHash, function(torrent) {
 		console.log('got torrent metadata!')
+
+		onCompleteDestorySwarm(torrent)
 
 		// if only one file, webseed it directly
 		if (torrent.files.length == 1) {
@@ -69,6 +81,9 @@ router.get('/:infoHash/*', function(req, res, next) {
 		webseed(torrent, path, req, res, next)
 	} else {
 		client.add(infoHash, function(torrent) {
+
+			onCompleteDestorySwarm(torrent)
+
 			console.log('Got torrent metadata. Starting webseed on new torrent. ')
 			webseed(torrent, path, req, res, next)
 		})
