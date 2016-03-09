@@ -20,7 +20,7 @@ function showError(err, next) {
 function onCompleteDestorySwarm(torrent) {
 	var interval = 1000
 	var timer = setInterval(function() {
-		console.log('Torrent progress: ', torrent.name, Math.round(torrent.progress * 100) + '%')
+		console.log('Torrent progress: ', torrent.name, parseFloat(torrent.progress * 100).toFixed(2) + '%')
 		if (torrent.progress == 1) {
 			clearInterval(timer)
 			console.log('Destroying swarm, torrent fully downloaded.', torrent.name, torrent.path)
