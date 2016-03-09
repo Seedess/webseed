@@ -10,24 +10,28 @@ var webseed = require('../lib/webseed')
 var prettyBytes = require('pretty-bytes')
 
 var client = new WebTorrent()
+var file_path = './public/file/'
 
 function showError(err, next) {
 	next(err)
 }
 
 function onCompleteDestorySwarm(torrent) {
-	var timer = setTimeout(function() {
+	var interval = 1000
+	var timer = setInterval(function() {
+		console.log('Torrent progress: ', torrent.name, Math.round(torrent.progress * 100) + '%')
 		if (torrent.progress == 1) {
-			clearTimeout(timer)
+			clearInterval(timer)
 			console.log('Destroying swarm, torrent fully downloaded.')
 			torrent.swarm.destroy()
 		}
-	}, 1000)
+	}, interval)
 }
 
 /* List torrent files /file/:infoHash */
 router.get('/:infoHash', function(req, res, next) {
-	var infoHash = req.params.infoHash
+	var infoHash = req.params.infoHash,
+		save_path = file_path
 
 	console.log('GET  file/:infoHash ', infoHash)
 	if (infoHash.length != 40) {
@@ -43,7 +47,8 @@ router.get('/:infoHash', function(req, res, next) {
 	}
 
 	console.log('Retrieving torrent metadata from bittorrent')
-	client.add(infoHash, function(torrent) {
+	save_path += infoHash + '/'
+	client.add(infoHash, { path: save_path }, function(torrent) {
 		console.log('got torrent metadata!')
 
 		onCompleteDestorySwarm(torrent)
@@ -68,7 +73,8 @@ router.get('/:infoHash', function(req, res, next) {
 /* webseed torrent file /file/:infoHash/path/to/file.ext */
 router.get('/:infoHash/*', function(req, res, next) {
 	var infoHash = req.params.infoHash,
-		path = req.params[0]
+		path = req.params[0],
+		save_path = file_path
 
     console.log('GET file/:infoHash/:path ', infoHash, path)
 	if (infoHash.length != 40) {
@@ -80,7 +86,8 @@ router.get('/:infoHash/*', function(req, res, next) {
 		console.log('Resuming webseed on existing torrent...')
 		webseed(torrent, path, req, res, next)
 	} else {
-		client.add(infoHash, function(torrent) {
+		save_path += infoHash + '/'
+		client.add(infoHash, { path: save_path }, function(torrent) {
 
 			onCompleteDestorySwarm(torrent)
 

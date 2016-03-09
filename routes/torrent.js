@@ -14,7 +14,7 @@ function showError(err, next) {
 /* get .torrent file */
 router.get('/:infoHash', function(req, res, next) {
 	var infoHash = req.params.infoHash.replace(/\..*$/, ''),
-		path = './cache/' + infoHash + '.torrent'
+		path = './public/torrent/' + infoHash + '.torrent'
 
 	console.log('Requesting torrent file: ', infoHash + '.torrent')
 
