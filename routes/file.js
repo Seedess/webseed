@@ -8,9 +8,10 @@ var WebTorrent = require('webtorrent')
 var store = require('memory-chunk-store')
 var webseed = require('../lib/webseed')
 var prettyBytes = require('pretty-bytes')
+var path = require('path')
 
 var client = new WebTorrent()
-var file_path = './public/file/'
+var file_path = path.resolve(__dirname, '../public/file/')
 
 function showError(err, next) {
 	next(err)
@@ -22,7 +23,7 @@ function onCompleteDestorySwarm(torrent) {
 		console.log('Torrent progress: ', torrent.name, Math.round(torrent.progress * 100) + '%')
 		if (torrent.progress == 1) {
 			clearInterval(timer)
-			console.log('Destroying swarm, torrent fully downloaded.')
+			console.log('Destroying swarm, torrent fully downloaded.', torrent.name, torrent.path)
 			torrent.swarm.destroy()
 		}
 	}, interval)
@@ -31,7 +32,7 @@ function onCompleteDestorySwarm(torrent) {
 /* List torrent files /file/:infoHash */
 router.get('/:infoHash', function(req, res, next) {
 	var infoHash = req.params.infoHash,
-		save_path = file_path
+		save_path = path.resolve(file_path + '/' + infoHash)
 
 	console.log('GET  file/:infoHash ', infoHash)
 	if (infoHash.length != 40) {
@@ -46,8 +47,7 @@ router.get('/:infoHash', function(req, res, next) {
 		return
 	}
 
-	console.log('Retrieving torrent metadata from bittorrent')
-	save_path += infoHash + '/'
+	console.log('Retrieving torrent metadata from bittorrent. Saving files to: ', save_path)
 	client.add(infoHash, { path: save_path }, function(torrent) {
 		console.log('got torrent metadata!')
 
@@ -73,10 +73,10 @@ router.get('/:infoHash', function(req, res, next) {
 /* webseed torrent file /file/:infoHash/path/to/file.ext */
 router.get('/:infoHash/*', function(req, res, next) {
 	var infoHash = req.params.infoHash,
-		path = req.params[0],
-		save_path = file_path
+		_path = req.params[0],
+		save_path = path.resolve(file_path + '/' + infoHash)
 
-    console.log('GET file/:infoHash/:path ', infoHash, path)
+    console.log('GET file/:infoHash/:path ', infoHash, _path)
 	if (infoHash.length != 40) {
 		return showError(new Error('Invalid Infohash length'), next)
 	}
@@ -84,15 +84,15 @@ router.get('/:infoHash/*', function(req, res, next) {
 	var torrent = client.get(infoHash)
 	if (torrent) {
 		console.log('Resuming webseed on existing torrent...')
-		webseed(torrent, path, req, res, next)
+		webseed(torrent, _path, req, res, next)
 	} else {
-		save_path += infoHash + '/'
+		console.log('New webseed, saving to: ', save_path)
 		client.add(infoHash, { path: save_path }, function(torrent) {
 
 			onCompleteDestorySwarm(torrent)
 
 			console.log('Got torrent metadata. Starting webseed on new torrent. ')
-			webseed(torrent, path, req, res, next)
+			webseed(torrent, _path, req, res, next)
 		})
 	}
 	
