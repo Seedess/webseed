@@ -2,7 +2,7 @@ var express = require('express')
 var router = express.Router()
 var marko = require('marko')
 var debug = require('debug')('torrent-webseed:file')
-var fs = require('fs')
+var fs = require('fs-extra')
 var magnet2torrent = require('../lib/magnet2torrent')
 var WebTorrent = require('webtorrent')
 var store = require('memory-chunk-store')
@@ -12,6 +12,7 @@ var path = require('path')
 
 var client = new WebTorrent()
 var file_path = path.resolve(__dirname, '../public/file/')
+var cache_path = path.resolve(__dirname, '../cache/')
 
 function showError(err, next) {
 	next(err)
@@ -25,6 +26,15 @@ function onCompleteDestorySwarm(torrent) {
 			clearInterval(timer)
 			console.log('Destroying swarm, torrent fully downloaded.', torrent.name, torrent.path)
 			torrent.swarm.destroy()
+
+			console.log('Moving torrent to public folder: ', torrent.infoHash, cache_path, file_path)
+			var torrent_file_path = path.resolve(file_path + '/' + torrent.infoHash)
+			var torrent_cache_path = path.resolve(cache_path + '/' + torrent.infoHash)
+
+			fs.ensureSymlink(torrent_cache_path, torrent_file_path, function(err) {
+				if (err) console.log(err)
+			})
+
 		}
 	}, interval)
 }
@@ -32,7 +42,7 @@ function onCompleteDestorySwarm(torrent) {
 /* List torrent files /file/:infoHash */
 router.get('/:infoHash', function(req, res, next) {
 	var infoHash = req.params.infoHash,
-		save_path = path.resolve(file_path + '/' + infoHash)
+		save_path = path.resolve(cache_path + '/' + infoHash)
 
 	console.log('GET  file/:infoHash ', infoHash)
 	if (infoHash.length != 40) {
@@ -61,7 +71,7 @@ router.get('/:infoHash', function(req, res, next) {
 
 		res.setHeader('Content-Type', 'text/html')
 		var listHtml = torrent.files.map(function (file, i) {
-		return '<li><a download="' + file.name + '" href="/' + i + '">' + file.path + '</a> ' +
+		return '<li><a download="' + file.name + '" href="/file/' + infoHash + '/' + file.path + '">' + file.path + '</a> ' +
 		 	'(' + prettyBytes(file.length) + ')</li>'
 		}).join('<br>')
 
@@ -74,7 +84,7 @@ router.get('/:infoHash', function(req, res, next) {
 router.get('/:infoHash/*', function(req, res, next) {
 	var infoHash = req.params.infoHash,
 		_path = req.params[0],
-		save_path = path.resolve(file_path + '/' + infoHash)
+		save_path = path.resolve(cache_path + '/' + infoHash)
 
     console.log('GET file/:infoHash/:path ', infoHash, _path)
 	if (infoHash.length != 40) {

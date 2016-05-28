@@ -20,8 +20,10 @@ app.locals.ENV_DEVELOPMENT = env == 'development';
 
 // cors
 app.use(function(req, res, next) {
-  res.header("Access-Control-Allow-Origin", "*");
+  console.log(req.headers.host)
+  res.header("Access-Control-Allow-Origin", req.headers.origin);
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Range");
+  res.header("Access-Control-Allow-Credentials", "true");
   next();
 });
 
