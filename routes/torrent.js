@@ -1,7 +1,7 @@
 var express = require('express')
 var router = express.Router()
 var marko = require('marko')
-var debug = require('debug')('webseed:torrent')
+var debug = require('debug')('torrent-web-seed:torrent')
 var fs = require('fs')
 var magnet2torrent = require('../lib/magnet2torrent')
 
@@ -16,7 +16,7 @@ router.get('/:infoHash', function(req, res, next) {
 	var infoHash = req.params.infoHash.replace(/\..*$/, ''),
 		path = './public/torrent/' + infoHash + '.torrent'
 
-	console.log('Requesting torrent file: ', infoHash + '.torrent')
+	debug('Requesting torrent file: ', infoHash + '.torrent')
 
 	if (infoHash.length != 40) {
 		return showError(new Error('Invalid Infohash length'), next)

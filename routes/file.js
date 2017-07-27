@@ -10,65 +10,122 @@ var webseed = require('../lib/webseed')
 var prettyBytes = require('pretty-bytes')
 var path = require('path')
 
-var client = new WebTorrent()
-var file_path = path.resolve(__dirname, '../public/file/')
-var cache_path = path.resolve(__dirname, '../cache/')
+const maxConns = 100
+const maxLifetime = 5*1000 // ms
+
+let timeouts = {} // torrent lifetime timeouts
+
+// todo: set maxConns per torrent depending on load
+var client = new WebTorrent({
+  maxConns: getOptimalMaxConnsPerTorrent(1, maxConns),  // limit connections per torrent for mem usage
+})
+var file_save_path = path.resolve(__dirname, '../public/file/')
+
+// cleanup and progress display
+onCompleteDestorySwarm(client)
 
 function showError(err, next) {
 	next(err)
 }
 
-function onCompleteDestorySwarm(torrent) {
-	var interval = 1000
-	var timer = setInterval(function() {
-		console.log('Torrent progress: ', torrent.name, parseFloat(torrent.progress * 100).toFixed(2) + '%')
-		if (torrent.progress == 1) {
-			clearInterval(timer)
-			console.log('Destroying swarm, torrent fully downloaded.', torrent.name, torrent.path)
-			torrent.swarm.destroy()
+function getOptimalMaxConnsPerTorrent(numTorrents, maxConns) {
+	return Math.ceil((maxConns - (maxConns / ( (numTorrents + 10) * .1))) / numTorrents)
+}
 
-			console.log('Moving torrent to public folder: ', torrent.infoHash, cache_path, file_path)
-			var torrent_file_path = path.resolve(file_path + '/' + torrent.infoHash)
-			var torrent_cache_path = path.resolve(cache_path + '/' + torrent.infoHash)
+function selectFiles(torrent, selected_files = []) {
+	// Remove default selection (whole torrent)
+  torrent.deselect(0, torrent.pieces.length - 1, false)
 
-			fs.ensureSymlink(torrent_cache_path, torrent_file_path, function(err) {
-				if (err) console.log(err)
-			})
+  // Add selections (individual files)
+  for (let i = 0; i < selected_files.length; i++) {
+    const file = torrent.files[i]
+    if (selected_files.indexOf(file) != -1) {
+    	debug('selecting file ' + file.name + ' of torrent ' + torrent.name)
+      file.select()
+    } else {
+      debug('deselecting file ' + i + ' of torrent ' + torrent.name)
+      file.deselect()
+    }
+  }
+}
 
+function getFileByPath(torrent, path) {
+	torrent.files.forEach(file => {
+		if (file.path == path) {
+			return file
 		}
+	})
+}
+
+function onCompleteDestorySwarm(client) {
+	var interval = 5000
+	var timer = setInterval(function() {
+
+		if (client.torrents.length) {
+			const numTorrents = client.torrents.length
+			const numPeers = client.torrents.reduce((sum, torrent) => sum + torrent.numPeers, 0)
+			client.maxConns = getOptimalMaxConnsPerTorrent(numTorrents, maxConns)
+
+			debug('Progress: ', numTorrents + ' torrents.', 
+				'Peers:', numPeers,
+				'maxConns:', client.maxConns,
+				'progress:', parseFloat(client.progress * 100).toFixed(2) + '%', 
+				'downloaded', prettyBytes(client.torrents.reduce((sum, torrent) => sum + torrent.received, 0)),
+				'download speed:', prettyBytes(client.downloadSpeed), 
+				'upload speed:', prettyBytes(client.uploadSpeed))
+			client.torrents.forEach(torrent => {
+				debug(torrent.name, 
+					'progress:', parseFloat(torrent.progress * 100).toFixed(2) + '%', 
+					'speed: ^' + prettyBytes(torrent.uploadSpeed) + ' / ' + prettyBytes(torrent.downloadSpeed),
+					'peers:', torrent.numPeers, 
+					'ratio:', parseFloat(torrent.ratio).toFixed(2),
+					'downloaded:', prettyBytes(torrent.received),
+					'uploaded:', prettyBytes(torrent.uploaded),
+					'infoHash:', torrent.infoHash, 
+					'path:', torrent.path)
+
+				if (torrent.progress == 1) {
+					debug('Destroying swarm, torrent fully downloaded.', torrent.name, torrent.path)
+					torrent.destroy()
+
+					var torrent_save_path = path.resolve(file_save_path + '/' + torrent.infoHash)
+					var torrent_cache_path = torrent.path
+
+					debug('Moving torrent to public folder: ', torrent.infoHash, torrent_cache_path, torrent_save_path)
+
+					// symlink the tmp cached file
+					fs.ensureSymlink(torrent_cache_path, torrent_save_path, function(err) {
+						if (err) debug(err)
+					})
+				}
+			})
+		}
+		
+
 	}, interval)
+}
+
+// destroys torrents not requested after some time
+function renewTorrentLifetime(torrent) {
+	clearTimeout(timeouts[torrent.infoHash])
+	timeouts[torrent.infoHash] = setTimeout(() => {
+		if (!torrent || torrent.destroyed) return debug('Torrent already destroyed')
+		debug('Destroying torrent ', torrent.infoHash, torrent.name, ' max lifetime ', maxLifetime/1000 + 'secs')
+		//client.remove(torrent.infoHash) // fixme
+		//selectFiles(torrent, []) // remove when client.remove() doesn't cause errors
+	}, maxLifetime)
 }
 
 /* List torrent files /file/:infoHash */
 router.get('/:infoHash', function(req, res, next) {
-	var infoHash = req.params.infoHash,
-		save_path = path.resolve(cache_path + '/' + infoHash)
+	var infoHash = new String(req.params.infoHash).toLowerCase()
 
-	console.log('GET  file/:infoHash ', infoHash)
+	debug('GET  file/:infoHash ', infoHash)
 	if (infoHash.length != 40) {
 		return showError(new Error('Invalid Infohash length'), next)
 	}
 
-	// resume webseed if we have only one file and torrent exists
-	var torrent = client.get(infoHash)
-	if (torrent && torrent.files.length == 1) {
-		console.log('Resuming webseed on existing torrent...')
-		webseed(torrent, torrent.files[0].path, req, res, next)
-		return
-	}
-
-	console.log('Retrieving torrent metadata from bittorrent. Saving files to: ', save_path)
-	client.add(infoHash, { path: save_path }, function(torrent) {
-		console.log('got torrent metadata!')
-
-		onCompleteDestorySwarm(torrent)
-
-		// if only one file, webseed it directly
-		if (torrent.files.length == 1) {
-			webseed(torrent, torrent.files[0].path, req, res, next)
-			return
-		}
-
+	var sendResp = (torrent) => {
 		res.setHeader('Content-Type', 'text/html')
 		var listHtml = torrent.files.map(function (file, i) {
 		return '<li><a download="' + file.name + '" href="/file/' + infoHash + '/' + file.path + '">' + file.path + '</a> ' +
@@ -77,31 +134,56 @@ router.get('/:infoHash', function(req, res, next) {
 
 		var html = '<h1>' + torrent.name + '</h1><ol>' + listHtml + '</ol>'
 		return res.end(html)
+	}
+
+	// torrent already exists in client. Send metadata when ready
+	var torrent = client.get(infoHash)
+	if (torrent) {
+		debug('Existing torrent, sending metadata ', infoHash)
+		renewTorrentLifetime(torrent)
+		sendResp(torrent)
+		return
+	}
+
+	debug('New torrent, retrieving metadata ', infoHash)
+	client.add(infoHash, { store: store }, function(torrent) {
+		debug('got torrent metadata!')
+		renewTorrentLifetime(torrent)
+
+		torrent.pause() // stop adding peers
+		selectFiles(torrent, []) // deselect/deprioritize whole torrent
+
+		sendResp(torrent)
 	})
 });
 
 /* webseed torrent file /file/:infoHash/path/to/file.ext */
 router.get('/:infoHash/*', function(req, res, next) {
-	var infoHash = req.params.infoHash,
-		_path = req.params[0],
-		save_path = path.resolve(cache_path + '/' + infoHash)
+	var infoHash = new String(req.params.infoHash).toLowerCase(),
+		_path = req.params[0]
 
-    console.log('GET file/:infoHash/:path ', infoHash, _path)
+    debug('GET file/:infoHash/:path ', infoHash, _path)
 	if (infoHash.length != 40) {
 		return showError(new Error('Invalid Infohash length'), next)
 	}
 
 	var torrent = client.get(infoHash)
 	if (torrent) {
-		console.log('Resuming webseed on existing torrent...')
+		debug('Resuming webseed on existing torrent... ', infoHash, _path)
+
+		renewTorrentLifetime(torrent)
+
 		webseed(torrent, _path, req, res, next)
 	} else {
-		console.log('New webseed, saving to: ', save_path)
-		client.add(infoHash, { path: save_path }, function(torrent) {
+		debug('New webseed: ', infoHash, _path)
+		client.add(infoHash, function(torrent) {
 
-			onCompleteDestorySwarm(torrent)
+			renewTorrentLifetime(torrent)
 
-			console.log('Got torrent metadata. Starting webseed on new torrent. ')
+			// select only requested file
+			selectFiles(torrent, [getFileByPath(torrent, _path)])
+
+			debug('Got torrent metadata. Starting webseed on new torrent. ', infoHash, _path)
 			webseed(torrent, _path, req, res, next)
 		})
 	}
