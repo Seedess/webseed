@@ -11,7 +11,7 @@ var prettyBytes = require('pretty-bytes')
 var path = require('path')
 
 const maxConns = 100
-const maxLifetime = 5*1000 // ms
+const maxLifetime = 60*1000 // ms
 
 let timeouts = {} // torrent lifetime timeouts
 
@@ -37,28 +37,27 @@ function selectFiles(torrent, selected_files = []) {
   torrent.deselect(0, torrent.pieces.length - 1, false)
 
   // Add selections (individual files)
-  for (let i = 0; i < selected_files.length; i++) {
-    const file = torrent.files[i]
+  for (let file of torrent.files) {
     if (selected_files.indexOf(file) != -1) {
-    	debug('selecting file ' + file.name + ' of torrent ' + torrent.name)
+    	debug('electing file ' + file.path + ' of torrent ' + torrent.name)
       file.select()
     } else {
-      debug('deselecting file ' + i + ' of torrent ' + torrent.name)
+      debug('deselecting file ' + file.path + ' of torrent ' + torrent.name)
       file.deselect()
     }
   }
 }
 
 function getFileByPath(torrent, path) {
-	torrent.files.forEach(file => {
-		if (file.path == path) {
-			return file
-		}
-	})
+	for (let file of torrent.files) {
+    if (file.path == path) {
+      return file
+    }
+  }
 }
 
 function onCompleteDestorySwarm(client) {
-	var interval = 5000
+	var interval = 10000
 	var timer = setInterval(function() {
 
 		if (client.torrents.length) {
@@ -81,7 +80,7 @@ function onCompleteDestorySwarm(client) {
 					'ratio:', parseFloat(torrent.ratio).toFixed(2),
 					'downloaded:', prettyBytes(torrent.received),
 					'uploaded:', prettyBytes(torrent.uploaded),
-					'infoHash:', torrent.infoHash, 
+					//'infoHash:', torrent.infoHash, 
 					'path:', torrent.path)
 
 				if (torrent.progress == 1) {
@@ -108,11 +107,12 @@ function onCompleteDestorySwarm(client) {
 // destroys torrents not requested after some time
 function renewTorrentLifetime(torrent) {
 	clearTimeout(timeouts[torrent.infoHash])
+	debug('Timeout on destroy torrent cleared', timeouts[torrent.infoHash], torrent.infoHash)
 	timeouts[torrent.infoHash] = setTimeout(() => {
 		if (!torrent || torrent.destroyed) return debug('Torrent already destroyed')
 		debug('Destroying torrent ', torrent.infoHash, torrent.name, ' max lifetime ', maxLifetime/1000 + 'secs')
 		//client.remove(torrent.infoHash) // fixme
-		//selectFiles(torrent, []) // remove when client.remove() doesn't cause errors
+		selectFiles(torrent, []) // remove when client.remove() doesn't cause errors
 	}, maxLifetime)
 }
 
@@ -150,7 +150,7 @@ router.get('/:infoHash', function(req, res, next) {
 		debug('got torrent metadata!')
 		renewTorrentLifetime(torrent)
 
-		torrent.pause() // stop adding peers
+		//torrent.pause() // stop adding peers
 		selectFiles(torrent, []) // deselect/deprioritize whole torrent
 
 		sendResp(torrent)
@@ -181,7 +181,8 @@ router.get('/:infoHash/*', function(req, res, next) {
 			renewTorrentLifetime(torrent)
 
 			// select only requested file
-			selectFiles(torrent, [getFileByPath(torrent, _path)])
+			const file = getFileByPath(torrent, _path)
+			selectFiles(torrent, [file])
 
 			debug('Got torrent metadata. Starting webseed on new torrent. ', infoHash, _path)
 			webseed(torrent, _path, req, res, next)
