@@ -1,0 +1,14 @@
+{
+  "apps": [
+    {
+      "name": "WebSeed",
+      "script": "./bin/www",
+      "log_date_format": "YYYY-MM-DD",
+      "exec_mode": "fork_mode",
+      "env": {
+        "PORT": 8002,
+        "DEBUG": "*webseed*"
+      }
+    }
+  ]
+}

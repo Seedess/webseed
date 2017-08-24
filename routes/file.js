@@ -37,14 +37,16 @@ function selectFiles(torrent, selected_files = []) {
   torrent.deselect(0, torrent.pieces.length - 1, false)
 
   // Add selections (individual files)
-  for (let file of torrent.files) {
-    if (selected_files.indexOf(file) != -1) {
-    	debug('electing file ' + file.path + ' of torrent ' + torrent.name)
-      file.select()
-    } else {
-      debug('deselecting file ' + file.path + ' of torrent ' + torrent.name)
-      file.deselect()
-    }
+  if (torrent.files) {
+  	for (let file of torrent.files) {
+	    if (selected_files.indexOf(file) != -1) {
+	    	debug('electing file ' + file.path + ' of torrent ' + torrent.name)
+	      file.select()
+	    } else {
+	      debug('deselecting file ' + file.path + ' of torrent ' + torrent.name)
+	      file.deselect()
+	    }
+	  }
   }
 }
 
@@ -107,7 +109,7 @@ function onCompleteDestorySwarm(client) {
 // destroys torrents not requested after some time
 function renewTorrentLifetime(torrent) {
 	clearTimeout(timeouts[torrent.infoHash])
-	debug('Timeout on destroy torrent cleared', timeouts[torrent.infoHash], torrent.infoHash)
+	debug('Timeout on destroy torrent cleared', torrent.infoHash)
 	timeouts[torrent.infoHash] = setTimeout(() => {
 		if (!torrent || torrent.destroyed) return debug('Torrent already destroyed')
 		debug('Destroying torrent ', torrent.infoHash, torrent.name, ' max lifetime ', maxLifetime/1000 + 'secs')
@@ -127,10 +129,13 @@ router.get('/:infoHash', function(req, res, next) {
 
 	var sendResp = (torrent) => {
 		res.setHeader('Content-Type', 'text/html')
-		var listHtml = torrent.files.map(function (file, i) {
-		return '<li><a download="' + file.name + '" href="/file/' + infoHash + '/' + file.path + '">' + file.path + '</a> ' +
-		 	'(' + prettyBytes(file.length) + ')</li>'
-		}).join('<br>')
+		var listHtml = ""
+		if (torrent.files) {
+			listHtml = torrent.files.map(function (file, i) {
+				return '<li><a download="' + file.name + '" href="/file/' + infoHash + '/' + file.path + '">' + file.path + '</a> ' +
+				 	'(' + prettyBytes(file.length) + ')</li>'
+			}).join('<br>')
+		}
 
 		var html = '<h1>' + torrent.name + '</h1><ol>' + listHtml + '</ol>'
 		return res.end(html)
