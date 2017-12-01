@@ -3,7 +3,6 @@ var router = express.Router()
 var marko = require('marko')
 var debug = require('debug')('torrent-webseed:file')
 var fs = require('fs-extra')
-var magnet2torrent = require('../lib/magnet2torrent')
 var WebTorrent = require('webtorrent')
 var store = require('memory-chunk-store')
 var webseed = require('../lib/webseed')
@@ -29,7 +28,7 @@ function showError(err, next) {
 }
 
 function getOptimalMaxConnsPerTorrent(numTorrents, maxConns) {
-	return Math.ceil((maxConns - (maxConns / ( (numTorrents + 10) * .1))) / numTorrents)
+	return Math.ceil((maxConns - (maxConns / ( (numTorrents + 10) * 0.1))) / numTorrents)
 }
 
 function selectFiles(torrent, selected_files = []) {
@@ -58,32 +57,47 @@ function getFileByPath(torrent, path) {
   }
 }
 
+function getClientStats(client) {
+	const numTorrents = client.torrents.length
+	const numPeers = client.torrents.reduce((sum, torrent) => sum + torrent.numPeers, 0)
+	client.maxConns = getOptimalMaxConnsPerTorrent(numTorrents, maxConns)
+	return {
+		'Progress': numTorrents + ' torrents.', 
+		'Peers': numPeers,
+		'maxConns': client.maxConns,
+		'progress': parseFloat(client.progress * 100).toFixed(2) + '%', 
+		'downloaded': prettyBytes(client.torrents.reduce((sum, torrent) => sum + torrent.received, 0)),
+		'downloadSpeed': prettyBytes(client.downloadSpeed), 
+		'uploadSpeed': prettyBytes(client.uploadSpeed)
+	}
+}
+	
+function getTorrentStats(torrent) {
+	return {
+			'name': torrent.name, 
+			'progress': parseFloat(torrent.progress * 100).toFixed(2) + '%', 
+			'speed': prettyBytes(torrent.uploadSpeed) + ' / ' + prettyBytes(torrent.downloadSpeed),
+			'peers': torrent.numPeers, 
+			'ratio': parseFloat(torrent.ratio).toFixed(2),
+			'downloaded': prettyBytes(torrent.received),
+			'uploaded': prettyBytes(torrent.uploaded),
+			'infoHash:': torrent.infoHash, 
+			'path': torrent.path
+		}
+}
+
 function onCompleteDestorySwarm(client) {
 	var interval = 10000
-	var timer = setInterval(function() {
+	var timer = setInterval(() => {
 
 		if (client.torrents.length) {
 			const numTorrents = client.torrents.length
 			const numPeers = client.torrents.reduce((sum, torrent) => sum + torrent.numPeers, 0)
 			client.maxConns = getOptimalMaxConnsPerTorrent(numTorrents, maxConns)
 
-			debug('Progress: ', numTorrents + ' torrents.', 
-				'Peers:', numPeers,
-				'maxConns:', client.maxConns,
-				'progress:', parseFloat(client.progress * 100).toFixed(2) + '%', 
-				'downloaded', prettyBytes(client.torrents.reduce((sum, torrent) => sum + torrent.received, 0)),
-				'download speed:', prettyBytes(client.downloadSpeed), 
-				'upload speed:', prettyBytes(client.uploadSpeed))
+			debug(getClientStats(client))
 			client.torrents.forEach(torrent => {
-				debug(torrent.name, 
-					'progress:', parseFloat(torrent.progress * 100).toFixed(2) + '%', 
-					'speed: ^' + prettyBytes(torrent.uploadSpeed) + ' / ' + prettyBytes(torrent.downloadSpeed),
-					'peers:', torrent.numPeers, 
-					'ratio:', parseFloat(torrent.ratio).toFixed(2),
-					'downloaded:', prettyBytes(torrent.received),
-					'uploaded:', prettyBytes(torrent.uploaded),
-					//'infoHash:', torrent.infoHash, 
-					'path:', torrent.path)
+				debug(getTorrentStats(torrent))
 
 				if (torrent.progress == 1) {
 					debug('Destroying swarm, torrent fully downloaded.', torrent.name, torrent.path)
@@ -101,7 +115,6 @@ function onCompleteDestorySwarm(client) {
 				}
 			})
 		}
-		
 
 	}, interval)
 }
@@ -176,14 +189,15 @@ router.get('/:infoHash/*', function(req, res, next) {
 	if (torrent) {
 		debug('Resuming webseed on existing torrent... ', infoHash, _path)
 
-		renewTorrentLifetime(torrent)
+		// todo: fix
+		//renewTorrentLifetime(torrent)
 
 		webseed(torrent, _path, req, res, next)
 	} else {
 		debug('New webseed: ', infoHash, _path)
 		client.add(infoHash, function(torrent) {
 
-			renewTorrentLifetime(torrent)
+			//renewTorrentLifetime(torrent)
 
 			// select only requested file
 			const file = getFileByPath(torrent, _path)
