@@ -18,9 +18,11 @@ var opts = require('optimist')
     })
   .argv;
 
-app.set('port', process.env.PORT || opts.port || 8002);
+var PORT = process.env.PORT || opts.port || 8002
+var HOST = process.env.HOST || require('address').ip() || 'localhost'
 
-var server = app.listen(app.get('port'), function() {
-	console.log('Express server listening on port ' + server.address().port);
+var server = app.listen(PORT, HOST, function() {
+  var addr = server.address()
+	console.log('Seedess server listening at ' + addr.address + ':' + addr.port);
 	console.log('Cors enabled for *')
 });

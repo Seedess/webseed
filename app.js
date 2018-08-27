@@ -1,5 +1,3 @@
-
-
 var express = require('express');
 var path = require('path');
 var favicon = require('serve-favicon');
@@ -56,14 +54,8 @@ app.use(function(req, res, next) {
 // development error handler
 // will print stacktrace
 app.showError = function(err, req, res, next) {
-  var errorTemplate = require('marko').load(require.resolve('./views/error.marko'));
   res.status(err.status || 500);
-  errorTemplate.render({
-    $global: {locals: req.app.locals},
-    message: err.message,
-    error: err,
-    title: 'error'
-  }, res);
+  res.json(err)
 }
 
 
@@ -76,14 +68,8 @@ if (app.get('env') === 'development') {
 // production error handler
 // no stacktraces leaked to user
 app.use(function(err, req, res, next) {
-  var errorTemplate = require('marko').load(require.resolve('./views/error.marko'));
-    res.status(err.status || 500);
-    errorTemplate.render({
-      $global: {locals: req.app.locals},
-      message: err.message,
-      error: err,
-      title: 'error'
-    }, res);
+    res.status(err.status || 500)
+    res.json(err)
 });
 
 
