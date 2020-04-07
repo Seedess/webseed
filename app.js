@@ -17,8 +17,9 @@ debug('env', app.get('env'))
 
 // cors
 app.use(function(req, res, next) {
-  debug('Sending cors headers', req.headers.origin)
-  res.header("Access-Control-Allow-Origin", req.headers.origin);
+  const origin = req.headers.origin || '*'
+  debug('Sending cors headers', origin)
+  res.header("Access-Control-Allow-Origin", origin);
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Range");
   res.header("Access-Control-Allow-Credentials", "true");
   next();
@@ -49,9 +50,10 @@ app.use(function(req, res, next) {
 /// error handler
 // in production error handler no stacktraces leaked to user
 app.use(function(error, req, res, next) {
-  debug('Error in production mode', error)
+  const env = app.get('env')
+  debug('Error', env, error)
   res.status(error.status || 500)
-  if (app.get('env') === 'development') {
+  if (env === 'development') {
     res.json({ error })
   } else {
     res.json({ error: { message: err.message } })

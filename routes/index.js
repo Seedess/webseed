@@ -1,16 +1,14 @@
 var express = require('express')
 var router = express.Router()
-var marko = require('marko')
+var markdown = require('../middleware/markdown')
+var fs = require('fs')
 var debug = require('debug')('seedess:sever:index')
 
 /* GET home page. */
-router.get('/', function(req, res) {
+router.get('/', markdown, function(req, res) {
 	debug('getting /')
-	var indexTemplate = marko.load(require.resolve('../views/index.marko'));
-	indexTemplate.render({
-		$global: {locals: req.app.locals},
-		title: 'Seedess Torrent Server'
-	}, res);
+	res.markdown(fs.readFileSync(__dirname + '/../Readme.md').toString())
 });
+
 
 module.exports = router;
