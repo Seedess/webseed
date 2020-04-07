@@ -10,5 +10,4 @@ const server = app.listen(PORT, HOST, function() {
     ? { address: 'localhost', port: PORT } 
     : server.address()
 	console.log('Seedess server listening at http://' + address + ':' + port);
-	console.log('Cors enabled for *')
 });

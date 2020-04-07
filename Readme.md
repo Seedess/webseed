@@ -30,13 +30,37 @@ Imagine there are 1000 simultaneous viewers of your 4K video. Traditionally you 
 
 Node.js is required on the server
 
-``
+```
 git clone git@github.com:Seedess/webseed.git
 cd webseed
-``
+```
 
 ## Start
 
-``
+Start with default options
+
+```
 npm start
-``
+```
+
+Start with setting host (public interface) and port (http port)
+
+```
+sudo HOST=0.0.0.0 PORT=80 npm start
+```
+
+## Custom Server
+
+You can create a custom server in your own app. In this example your app has a folder `webseed` where you cloned this repository.
+
+```
+const app = require('./webseed/app');
+
+const NODE_ENV = process.env.NODE_ENVIRONMENT
+const PORT = process.env.PORT || 8002
+const HOST = process.env.HOST || 'localhost'
+
+const server = app.listen(PORT, HOST, function() {
+	console.log('Seedess server listening at http://' + HOST + ':' + PORT);
+});
+```
