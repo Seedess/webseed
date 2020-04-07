@@ -6,7 +6,7 @@ var magnet2torrent = require('../lib/magnet2torrent')
 
 /**
  * Retrieves torrent info from bitTorrent and sends to HTTP Response
- * @note this is slow and can fail is no peers are available
+ * @note this is slow and can fail if no peers are available
  * @param {string} infoHash 
  * @param {express.Response} res 
  */
