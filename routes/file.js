@@ -1,6 +1,5 @@
 var express = require('express')
 var router = express.Router()
-var marko = require('marko')
 var debug = require('debug')('torrent-webseed:file')
 var fs = require('fs-extra')
 var WebTorrent = require('webtorrent')

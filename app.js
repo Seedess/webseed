@@ -25,9 +25,6 @@ app.use(function(req, res, next) {
   next();
 });
 
-// view engine setup
-
-
 // app.use(favicon(__dirname + '/public/img/favicon.ico'));
 app.use(logger('dev'));
 app.use(bodyParser.json());
@@ -57,7 +54,6 @@ app.showError = function(err, req, res, next) {
   res.status(err.status || 500);
   res.json(err)
 }
-
 
 if (app.get('env') === 'development') {
   app.use(function(err, req, res, next) {
