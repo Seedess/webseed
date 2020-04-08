@@ -2,7 +2,7 @@
   "apps": [
     {
       "name": "webseed",
-      "script": "./bin/www",
+      "script": "./bin/webseed",
       "log_date_format": "YYYY-MM-DD",
       "exec_mode": "fork_mode",
       "env": {
