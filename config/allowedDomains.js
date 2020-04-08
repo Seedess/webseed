@@ -1,3 +1,4 @@
 module.exports = [
-  "localhost"
+  "localhost",
+  "cdn.seedess.com"
 ]
