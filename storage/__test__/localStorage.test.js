@@ -3,7 +3,6 @@ const localStorage = require('../localStorage')()
 
 describe('localStorage', () => {
 
-
   it ('saves objects by value', async () => {
     const item = { id: 'foo' }
     await localStorage.setItem('foo', item)

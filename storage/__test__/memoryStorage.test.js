@@ -3,7 +3,6 @@ const memoryStorage = require('../memoryStorage')()
 
 describe('memoryStorage', () => {
 
-
   it ('saves objects by reference', async () => {
     const item = { id: 'foo' }
     await memoryStorage.setItem('foo', item)

@@ -10,23 +10,8 @@ const { allowedDomains } = configs
 const createTorrent = require('../../lib/createTorrent')
 const parseTorrent = require('../../lib/parseTorrent')
 const FetchStream = require("fetch").FetchStream
-
-// polyfill URL
-if (typeof URL === 'undefined') {
-  debug('polyfill URL', require('url').Url)
-  URL = function(url) { return require('url').parse(url) }
-}
-
-function isAllowedUrlDomain(url) {
-  const urlInfo = new URL(url)
-  debug('isAllowedUrlDomain', urlInfo, allowedDomains)
-  return allowedDomains.find(hostname => hostname === urlInfo.hostname)
-}
-
-function sendTorrentFile(res, torrentInfo, torrent) {
-  res.header("content-disposition", 'attachment; filename="' + torrentInfo.infoHash + '.torrent"')
-  res.send(torrent)
-}
+const sendTorrentFile = require('../../lib/sendTorrentFile')
+const isAllowedUrlDomain = require('../../lib/isAllowedUrlDomain')
 
 /**
  * Get the torrent file for the URL
@@ -37,7 +22,7 @@ router.get('/create', async function(req, res, next) {
 
   debug('Requesting torrent from url: ', url)
 
-  const allowedDomain = isAllowedUrlDomain(url)
+  const allowedDomain = isAllowedUrlDomain(url, allowedDomains)
   if (!allowedDomain) {
     return next(new TypeError('URL is not in the allowed domains list'))
   }

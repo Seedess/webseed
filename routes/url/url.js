@@ -4,37 +4,24 @@ const debug = require('debug')('seedess:webseed:url')
 const configs = require('../../config')()
 const localStorage = configs.localStorage()
 const memoryStorage = configs.memoryStorage()
-const { allowedDomains } = configs
 const createTorrent = require('../../lib/createTorrent')
 const parseTorrent = require('../../lib/parseTorrent')
 const FetchStream = require("fetch").FetchStream
-
-// polyfill URL
-if (typeof URL === 'undefined') {
-  debug('polyfill URL', require('url').Url)
-  URL = function(url) { return require('url').parse(url) }
-}
-
-function isAllowedUrlDomain(url) {
-  const urlInfo = new URL(url)
-  debug('isAllowedUrlDomain', urlInfo, allowedDomains)
-  return allowedDomains.find(hostname => hostname === urlInfo.hostname)
-}
-
-function sendTorrentFile(res, torrentInfo, torrent) {
-  res.header("content-disposition", 'attachment; filename="' + torrentInfo.infoHash + '.torrent"')
-  res.send(torrent)
-}
+const isAllowedUrlDomain = require('../../lib/isAllowedUrlDomain')
+const { allowedDomains } = configs
+const sendTorrentFile = require('../../lib/sendTorrentFile')
 
 /**
  * Get the torrent file for the URL
+ * @example /url/{videoUrl}
+ * @example /?url={videoUrl}
  */
-router.get('/:url', async function(req, res, next) {
-  const { url } = req.params
+router.get(['/', '/:url'], async function(req, res, next) {
+  const { url } = { ...req.params, ...req.query }
 
   debug('Requesting torrent from url: ', url)
 
-  const allowedDomain = isAllowedUrlDomain(url)
+  const allowedDomain = isAllowedUrlDomain(url, allowedDomains)
   if (!allowedDomain) {
     return next(new TypeError('URL is not in the allowed domains list'))
   }
