@@ -1,6 +1,6 @@
 var express = require('express')
 var router = express.Router()
-var debug = require('debug')('torrent-web-seed:torrent')
+var debug = require('debug')('seedess:webseed:torrent')
 var fs = require('fs')
 var magnet2torrent = require('../lib/magnet2torrent')
 
