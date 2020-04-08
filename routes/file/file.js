@@ -1,7 +1,7 @@
 var express = require('express')
 var router = express.Router()
 var debug = require('debug')('seedess:webseed:file')
-var fs = require('fs-extra')
+var fs = require('fs')
 var WebTorrent = require('webtorrent')
 var store = require('memory-chunk-store')
 var webseed = require('../../lib/webseed')
@@ -10,7 +10,7 @@ var path = require('path')
 
 const maxConns = 100
 const maxLifetime = 60*1000 // ms
-var file_save_path = path.resolve(__dirname, '../public/file/')
+var file_save_path = path.resolve(__dirname, '../cache/file/')
 const torrentOpts = { store, path: file_save_path }
 
 let timeouts = {} // torrent lifetime timeouts
@@ -102,16 +102,6 @@ function onCompleteDestorySwarm(client) {
 				if (torrent.progress == 1) {
 					debug('Destroying swarm, torrent fully downloaded.', torrent.name, torrent.path)
 					torrent.destroy()
-
-					var torrent_save_path = path.resolve(file_save_path + '/' + torrent.infoHash)
-					var torrent_cache_path = torrent.path
-
-					debug('Moving torrent to public folder: ', torrent.infoHash, torrent_cache_path, torrent_save_path)
-
-					// symlink the tmp cached file
-					fs.ensureSymlink(torrent_cache_path, torrent_save_path, function(err) {
-						if (err) debug(err)
-					})
 				}
 			})
 		}
@@ -132,7 +122,7 @@ function renewTorrentLifetime(torrent) {
 }
 
 function getLocalTorrentFilePath(infoHash, cb) {
-	const torrentFilePath = './public/torrent/' + infoHash + '.torrent'
+	const torrentFilePath = './public/cache/' + infoHash + '.torrent'
 	fs.access(torrentFilePath, fs.R_OK, function(err) {
 		cb(err, !err && torrentFilePath)
 	})

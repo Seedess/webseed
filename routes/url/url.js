@@ -9,8 +9,15 @@ const createTorrent = require('../../lib/createTorrent')
 const parseTorrent = require('../../lib/parseTorrent')
 const FetchStream = require("fetch").FetchStream
 
+// polyfill URL
+if (typeof URL === 'undefined') {
+  debug('polyfill URL', require('url').Url)
+  URL = function(url) { return require('url').parse(url) }
+}
+
 function isAllowedUrlDomain(url) {
   const urlInfo = new URL(url)
+  debug('isAllowedUrlDomain', urlInfo, allowedDomains)
   return allowedDomains.find(hostname => hostname === urlInfo.hostname)
 }
 
