@@ -4,7 +4,8 @@ Open Source P2P Video Streaming BitTorrent Server used by [Seedess.com](https://
 
 ## Read First!
 
-Seedess Webseed Server uses BitTorrent technology in a novel way. It creates a secure private P2P network authenticated by 3rd party apps to secure users. It limits video streaming to content available to that within the "domain" or CDNs of the private P2P network. This secures the network from sharing of content not authorized by that domain.
+Seedess Webseed Server 
+([GitHub Repo](https://github.com/Seedess/webseed)) uses [BitTorrent technology](https://en.wikipedia.org/wiki/BitTorrent) in a novel way. It creates a secure private P2P network authenticated by 3rd party apps to secure users. It limits video streaming to content available to that within the "domain" or CDNs of the private P2P network. This secures the network from sharing of content not authorized by that domain.
 
 Seedess is an aim to  change the way BitTorrent is viewed - as a secure and efficient P2P video streaming technology. 
 
