@@ -7,7 +7,7 @@
       "exec_mode": "fork_mode",
       "env": {
         "PORT": 8002,
-        "DEBUG": "*webseed*"
+        "DEBUG": "seedess:*"
       }
     }
   ]
