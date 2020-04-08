@@ -34,31 +34,42 @@ app.use(bodyParser.urlencoded({
 app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// precedence is important
-app.use('/', routes);
-app.use('/torrent', torrent);
-app.use('/file', file);
+/**
+ * add routes
+ */
+app.addRoutes = () => {
+  app.use('/', routes);
+  app.use('/torrent', torrent);
+  app.use('/file', file);
+}
 
-/// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  debug('404 Error')
-  var err = new Error('Not Found');
-  err.status = 404;
-  next(err);
-});
+/**
+ * catch 404 and forward to error handler
+ */
+app.catch404 = () => {
+  app.use(function(req, res, next) {
+    debug('404 Error')
+    var err = new Error('Not Found');
+    err.status = 404;
+    next(err);
+  });
+}
 
-/// error handler
-// in production error handler no stacktraces leaked to user
-app.use(function(error, req, res, next) {
-  const env = app.get('env')
-  debug('Error', env, error)
-  res.status(error.status || 500)
-  if (env === 'development') {
-    res.json({ error })
-  } else {
-    res.json({ error: { message: err.message } })
-  }
-});
+/**
+ * in production error handler no stacktraces leaked to user
+ */
+app.catchErrors = () => {
+  app.use(function(error, req, res, next) {
+    const env = app.get('env')
+    debug('Error', env, error)
+    res.status(error.status || 500)
+    if (env === 'development') {
+      res.json({ error })
+    } else {
+      res.json({ error: { message: err.message } })
+    }
+  });
+}
 
 
 module.exports = app;
