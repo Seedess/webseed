@@ -4,20 +4,29 @@
   "private": true,
   "scripts": {
     "start": "node ./bin/webseed",
-    "watch": "nodemon ./bin/webseed"
+    "watch": "DEBUG=seedess:* nodemon ./bin/webseed",
+    "debug": "DEBUG=seedess:* nodemon -x electron-scope ./bin/webseed",
+    "test": "mocha -w"
   },
   "dependencies": {
     "address": "^1.1.2",
     "body-parser": "^1.19.0",
     "cookie-parser": "^1.4.5",
+    "create-torrent": "^4.4.1",
     "debug": "^4.1.1",
     "express": "^4.17.1",
+    "fetch": "^1.1.0",
     "fs-extra": "^9.0.0",
+    "localstorage-ponyfill": "^1.0.2",
     "memory-chunk-store": "^1.2.0",
     "morgan": "^1.10.0",
+    "parse-torrent": "^7.1.2",
     "pretty-bytes": "^5.3.0",
     "serve-favicon": "^2.5.0",
     "showdown": "^1.9.1",
     "webtorrent": "^0.108.1"
+  },
+  "devDependencies": {
+    "mocha": "^7.1.1"
   }
 }

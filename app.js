@@ -6,10 +6,6 @@ var cookieParser = require('cookie-parser');
 var bodyParser = require('body-parser');
 var debug = require('debug')('seedess:server')
 
-var routes = require('./routes/index');
-var torrent = require('./routes/torrent');
-var file = require('./routes/file');
-
 var app = express();
 
 app.set('env', process.env.NODE_ENV || 'development')
@@ -38,9 +34,10 @@ app.use(express.static(path.join(__dirname, 'public')));
  * add routes
  */
 app.addRoutes = () => {
-  app.use('/', routes);
-  app.use('/torrent', torrent);
-  app.use('/file', file);
+  app.use('/', require('./routes/index'));
+  app.use('/torrent', require('./routes/torrent'));
+  app.use('/file', require('./routes/file'));
+  app.use('/url', require('./routes/url'))
 }
 
 /**
@@ -60,13 +57,17 @@ app.catch404 = () => {
  */
 app.catchErrors = () => {
   app.use(function(error, req, res, next) {
+    error = error || {}
+    const { status, message, stack } = error
+    error.status = error.status || 500;
     const env = app.get('env')
+
     debug('Error', env, error)
     res.status(error.status || 500)
     if (env === 'development') {
-      res.json({ error })
+      res.json({ error: { status, message, stack } })
     } else {
-      res.json({ error: { message: err.message } })
+      res.json({ error: { status, message } })
     }
   });
 }
