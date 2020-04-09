@@ -15,9 +15,15 @@ debug('env', app.get('env'))
 app.use(function(req, res, next) {
   const origin = req.headers.origin || '*'
   debug('Sending cors headers', origin)
-  res.header("Access-Control-Allow-Origin", origin);
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Range");
-  res.header("Access-Control-Allow-Credentials", "true");
+  res.setHeader('Access-Control-Allow-Origin', origin)
+  if (req.method === 'OPTIONS' && req.headers['access-control-request-headers']) {
+    res.setHeader('Access-Control-Allow-Methods', 'POST, GET, OPTIONS')
+    res.setHeader(
+      'Access-Control-Allow-Headers',
+      req.headers['access-control-request-headers']
+    )
+    return res.end()
+  }
   next();
 });
 

@@ -32,7 +32,7 @@ router.get(['/', '/:url'], async function(req, res, next) {
 	if (torrent) {
     debug('Found torrent', torrent)
     const torrentInfo = parseTorrent(torrent)
-    return sendTorrentFile(res, torrentInfo, torrent, { format })
+    //return sendTorrentFile(res, torrentInfo, torrent, { format })
   }
 
   torrent = await cache.createTorrentFileFromUrl(url)
