@@ -28,6 +28,10 @@ app.use(bodyParser.urlencoded({
   extended: true
 }));
 app.use(cookieParser());
+app.use((req, res, next) => {
+  res.header('Accept-Ranges', 'bytes')
+  next()
+})
 app.use(express.static(path.join(__dirname, 'public')));
 
 /**
