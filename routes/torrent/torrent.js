@@ -1,7 +1,7 @@
 var express = require('express')
 var router = express.Router()
 var debug = require('debug')('seedess:webseed:torrent')
-const torrentFileFromInfoHash = require('../../lib/torrentFileFromInfoHash')
+const sendTorrentFileFromInfoHash = require('../../lib/sendTorrentFileFromInfoHash')
 
 const configs = require('../../config')()
 const localStorage = configs.localStorage()
@@ -61,7 +61,7 @@ router.get('/create', async function(req, res, next) {
 router.get('/:infoHash', function(req, res, next) {
 	var infoHash = req.params.infoHash.replace(/\..*$/, '')
 	debug('torrent file request', infoHash)
-	torrentFileFromInfoHash(res, infoHash)
+	sendTorrentFileFromInfoHash(res, infoHash)
 });
 
 module.exports = router;
