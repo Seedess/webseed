@@ -6,7 +6,7 @@
     "start": "node ./bin/webseed",
     "watch": "DEBUG=seedess:* nodemon ./bin/webseed",
     "debug": "DEBUG=seedess:* nodemon -x electron-scope ./bin/webseed",
-    "test": "mocha -w"
+    "test": "jest -w"
   },
   "dependencies": {
     "address": "^1.1.2",
@@ -28,6 +28,6 @@
     "webtorrent": "^0.108.1"
   },
   "devDependencies": {
-    "mocha": "^7.1.1"
+    "jest": "^27.3.1"
   }
 }
