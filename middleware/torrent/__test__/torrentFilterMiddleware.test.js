@@ -10,14 +10,15 @@ describe('torrentsFileterMiddleware', () => {
     expect(await isTorrentInBlacklist(infoHash)).toBe(true)
   })
 
-  it('Middleware returns next when valid torrent', async () => {
-    var next = {}
-    var ret = await torrentFilterMiddleware({ params: { infoHash: 'non-blacklisted-infohash' }}, null, next)
-    expect(ret).toBe(next)
+  it('Middleware calls next', async () => {
+    await torrentFilterMiddleware({ originalUrl: 'non-blacklisted-infohash' }, null, err => {
+      expect(err).toEqual(undefined)
+    })
   })
 
   it('Middleware throws when torrent blacklisted', async () => {
-    expect(async () => await torrentFilterMiddleware({ params: { infoHash }}))
-      .rejects.toEqual(new Error('Torrent is blacklisted'))
+    await torrentFilterMiddleware({ originalUrl: 'file/' + infoHash }, null, err => {
+      expect(err).toEqual(new Error('Torrent is blacklisted'))
+    })
   })
 })

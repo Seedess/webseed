@@ -1,3 +1,5 @@
+var debug = require('debug')('seedess:middleware:torrentFilter')
+
 /**
  * Blacklist of torrents by infoHash in each line of file
  */
@@ -15,6 +17,11 @@ async function isTorrentInBlacklist(infoHash) {
   })
 }
 
+function matchInfoHashFromUrl(url) {
+  const matches = url.match(/[a-f0-9]{40}/)
+  return matches ? matches[0] : false
+}
+
 
 /**
  * Torrent blacklist middleware
@@ -22,14 +29,17 @@ async function isTorrentInBlacklist(infoHash) {
  * @returns {next} when not blacklisted
  */
 async function torrentFilterMiddleware(req, res, next) {
-  var infoHash = new String(req.params.infoHash).toLowerCase()
+  var url = req.originalUrl
+  var infoHash = matchInfoHashFromUrl(url)
+  debug('torrentFilterMiddleware', { infoHash })
   if (infoHash) {
     var isBlacklist = await isTorrentInBlacklist(infoHash)
+    debug('torrentFilterMiddleware', { infoHash, isBlacklist })
     if (isBlacklist) {
-      throw new Error('Torrent is blacklisted')
+      return next(new Error('Torrent is blacklisted'))
     }
   }
-  return next
+  next()
 }
 
 module.exports = { torrentFilterMiddleware, isTorrentInBlacklist }
