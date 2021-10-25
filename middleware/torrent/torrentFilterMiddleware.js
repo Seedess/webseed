@@ -10,10 +10,12 @@ async function isTorrentInBlacklist(infoHash) {
       input: require('fs').createReadStream(blacklistFile),
       console: false
     });
-    for await (const line of readInterface) {
+    readInterface.on('line', line => {
       if (line === infoHash) resolve(true)
-    }
-    resolve(false)
+    })
+    readInterface.on('close', () => {
+      resolve(false)
+    })
   })
 }
 
