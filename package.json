@@ -14,7 +14,7 @@
     "cookie-parser": "^1.4.5",
     "create-torrent": "^4.4.1",
     "debug": "^4.1.1",
-    "express": "^4.17.1",
+    "express": "^4.17.3",
     "fetch": "^1.1.0",
     "localstorage-ponyfill": "^1.0.2",
     "memory-chunk-store": "^1.2.0",
